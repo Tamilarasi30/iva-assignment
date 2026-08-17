@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IMG//PREP — Image Preprocessing Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<nav>
+  <div class="logo"><span class="dot"></span> IMG<span style="color:var(--muted-2)">//</span>PREP</div>
+  <div class="navlinks">
+    <a data-n="01" href="#lab">Lab</a>
+    <a data-n="02" href="#noise">Noise Suppression</a>
+    <a data-n="03" href="#gradient">Gradient Operators</a>
+    <a data-n="04" href="#canny">Canny</a>
+  </div>
+</nav>
+
+<!-- ================= HERO ================= -->
+<div class="hero">
+  <div class="eyebrow">Digital Image Processing · Preprocessing Stage</div>
+  <h1>Every image is a grid<br>of numbers. <span class="grad-word">Filters</span> decide<br>which ones matter.</h1>
+  <p class="lede">A hands-on reference and live lab for the classic preprocessing toolkit: smoothing filters that suppress noise, gradient operators that expose edges, and the Canny algorithm that turns gradients into clean edge maps.</p>
+  <div class="hero-ctas">
+    <a href="#lab" class="btn primary">Open the lab →</a>
+    <a href="#noise" class="btn">Browse the theory</a>
+  </div>
+
+  <div class="conv-demo">
+    <div class="conv-grid-wrap">
+      <canvas id="heroCanvas" width="240" height="240"></canvas>
+    </div>
+    <div class="conv-readout">
+      <div class="label">Kernel sliding · Sobel Gx</div>
+      <div>A 3×3 window walks the pixel grid. At each stop it multiplies overlapping values and sums the result — the basic operation behind every filter on this page.</div>
+      <div class="sum" id="heroSum">Σ = 0</div>
+      <div class="formula">output(x,y) = Σᵢ Σⱼ kernel(i,j) · pixel(x+i, y+j)</div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= LAB ================= -->
+<section id="lab">
+  <div class="section-head">
+    <div class="eyebrow">01 · Interactive</div>
+    <h2>The lab</h2>
+    <p>Upload an image or use the generated test pattern, then run any filter below. Everything runs client-side — nothing leaves your browser.</p>
+  </div>
+
+  <div class="lab-grid">
+    <!-- LEFT: source + controls -->
+    <div class="panel">
+      <h3>Source image</h3>
+      <div class="dropzone" id="dropzone">
+        Drop an image here, or click to upload<br>
+        <span style="font-size:11px; opacity:.7;">JPG / PNG · auto-resized for the lab</span>
+        <input type="file" id="fileInput" accept="image/*">
+      </div>
+      <div class="row-btns">
+        <button class="btn" id="sampleBtn">Use test pattern</button>
+        <button class="btn" id="noiseBtn">Add noise <span class="noise-badge">●</span></button>
+      </div>
+      <div class="canvas-frame">
+        <canvas id="originalCanvas"></canvas>
+      </div>
+
+      <h3 style="margin-top:26px;">Category</h3>
+      <div class="cat-tabs" id="catTabs">
+        <button class="cat-tab active" data-cat="noise">Noise Suppression</button>
+        <button class="cat-tab" data-cat="gradient">Gradient Operators</button>
+        <button class="cat-tab" data-cat="canny">Canny</button>
+      </div>
+
+      <div class="tech-pills" id="techPills"></div>
+      <div id="paramContainer"></div>
+      <div class="kernel-display" id="kernelDisplay"></div>
+    </div>
+
+    <!-- RIGHT: output -->
+    <div class="panel">
+      <h3>Result</h3>
+      <div id="techDesc" class="desc-box"></div>
+      <div class="output-compare">
+        <div>
+          <div class="frame-label">Input</div>
+          <div class="canvas-frame"><canvas id="inputPreview"></canvas></div>
+        </div>
+        <div>
+          <div class="frame-label">Output</div>
+          <div class="canvas-frame"><canvas id="outputCanvas"></canvas></div>
+        </div>
+      </div>
+      <div id="stageRow" class="output-compare" style="margin-top:14px;"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= NOISE SUPPRESSION ================= -->
+<section id="noise">
+  <div class="section-head">
+    <div class="eyebrow">02 · Reference</div>
+    <h2>Noise suppression</h2>
+    <p>Smoothing filters trade detail for stability — each pixel is replaced by some summary of its neighborhood so that random sensor noise averages out.</p>
+  </div>
+
+  <div class="card-grid">
+    <div class="tcard">
+      <div class="tnum">FILTER / 01</div>
+      <h4>Mean filter</h4>
+      <div class="tformula">out(x,y) = (1/n²) Σ neighborhood(x,y)</div>
+      <p>Replaces every pixel with the plain average of its k×k neighborhood. Cheap, separable, and effective against uniform (Gaussian-like) sensor noise — but it blurs edges indiscriminately since it has no idea an edge is there.</p>
+      <div class="mini-kmat">
+        <div class="kmat-block">
+          <div class="kmat-title">3×3, k=1/9</div>
+          <div class="kmat" style="grid-template-columns:repeat(3,1fr);">
+            <div class="kcell">1</div><div class="kcell">1</div><div class="kcell">1</div>
+            <div class="kcell">1</div><div class="kcell">1</div><div class="kcell">1</div>
+            <div class="kcell">1</div><div class="kcell">1</div><div class="kcell">1</div>
+          </div>
+        </div>
+      </div>
+      <ul>
+        <li>Best for: mild, uniform sensor noise</li>
+        <li>Weakness: blurs edges, no impulse-noise rejection</li>
+        <li>Cost: O(1) per pixel with running-sum trick</li>
+      </ul>
+    </div>
+
+    <div class="tcard">
+      <div class="tnum">FILTER / 02</div>
+      <h4>Median filter</h4>
+      <div class="tformula">out(x,y) = median( neighborhood(x,y) )</div>
+      <p>Sorts the neighborhood and keeps the middle value instead of averaging. Because outliers can't drag a median the way they drag a mean, this is the standard choice against salt-and-pepper (impulse) noise, and it preserves edges far better than linear smoothing.</p>
+      <div class="mini-kmat">
+        <div class="kmat-block">
+          <div class="kmat-title">3×3 window</div>
+          <div class="kmat" style="grid-template-columns:repeat(3,1fr);">
+            <div class="kcell">12</div><div class="kcell">240</div><div class="kcell">18</div>
+            <div class="kcell">15</div><div class="kcell">14</div><div class="kcell">16</div>
+            <div class="kcell">9</div><div class="kcell">255</div><div class="kcell">13</div>
+          </div>
+        </div>
+      </div>
+      <ul>
+        <li>Best for: salt-and-pepper / impulse noise</li>
+        <li>Weakness: non-linear, can erode fine lines and corners</li>
+        <li>Cost: sorting per window, higher than mean/gaussian</li>
+      </ul>
+    </div>
+
+    <div class="tcard">
+      <div class="tnum">FILTER / 03</div>
+      <h4>Gaussian filter</h4>
+      <div class="tformula">G(x,y) = 1/(2πσ²) · e^(-(x²+y²)/2σ²)</div>
+      <p>Weights neighbors by a bell curve centered on the pixel, so nearby values matter more than distant ones. σ controls the spread: larger σ means stronger, wider smoothing. It's separable into two 1D passes and is the standard first step before gradient-based edge detection, including Canny.</p>
+      <div class="mini-kmat">
+        <div class="kmat-block">
+          <div class="kmat-title">3×3, σ≈1, k=1/16</div>
+          <div class="kmat" style="grid-template-columns:repeat(3,1fr);">
+            <div class="kcell">1</div><div class="kcell">2</div><div class="kcell">1</div>
+            <div class="kcell">2</div><div class="kcell">4</div><div class="kcell">2</div>
+            <div class="kcell">1</div><div class="kcell">2</div><div class="kcell">1</div>
+          </div>
+        </div>
+      </div>
+      <ul>
+        <li>Best for: general-purpose smoothing before edge detection</li>
+        <li>Weakness: still blurs edges, just more gracefully than mean</li>
+        <li>Cost: O(1) per pixel, separable 1D passes</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="panel" style="margin-top:32px;">
+    <h3>Quick comparison</h3>
+    <table class="cmp">
+      <tr><th>Filter</th><th>Type</th><th>Handles impulse noise</th><th>Edge preservation</th><th>Relative cost</th></tr>
+      <tr><td>Mean</td><td>Linear</td><td>Poor</td><td>Low</td><td>Low</td></tr>
+      <tr><td>Median</td><td>Non-linear</td><td>Excellent</td><td>High</td><td>Medium–High</td></tr>
+      <tr><td>Gaussian</td><td>Linear</td><td>Poor</td><td>Medium</td><td>Low</td></tr>
+    </table>
+  </div>
+</section>
+
+<!-- ================= GRADIENT OPERATORS ================= -->
+<section id="gradient">
+  <div class="section-head">
+    <div class="eyebrow">03 · Reference</div>
+    <h2>Gradient operators</h2>
+    <p>Edges are where intensity changes fast. Gradient operators convolve the image with small kernels tuned to respond to that change, in one or both directions.</p>
+  </div>
+
+  <div class="card-grid">
+    <div class="tcard">
+      <div class="tnum">OPERATOR / 01</div>
+      <h4>Sobel</h4>
+      <div class="tformula">|G| = √(Gx² + Gy²)</div>
+      <p>Pairs a directional difference with a smoothing weight (the 1-2-1 row/column), which makes it noticeably less noise-sensitive than Prewitt while staying a simple, fast, separable kernel. It's the most commonly used first-derivative edge operator in practice.</p>
+      <div class="kmat-pair">
+        <div class="kmat-block"><div class="kmat-title">Gx</div>
+          <div class="kmat" style="grid-template-columns:repeat(3,1fr);">
+            <div class="kcell">-1</div><div class="kcell">0</div><div class="kcell">1</div>
+            <div class="kcell">-2</div><div class="kcell">0</div><div class="kcell">2</div>
+            <div class="kcell">-1</div><div class="kcell">0</div><div class="kcell">1</div>
+          </div>
+        </div>
+        <div class="kmat-block"><div class="kmat-title">Gy</div>
+          <div class="kmat" style="grid-template-columns:repeat(3,1fr);">
+            <div class="kcell">-1</div><div class="kcell">-2</div><div class="kcell">-1</div>
+            <div class="kcell">0</div><div class="kcell">0</div><div class="kcell">0</div>
+            <div class="kcell">1</div><div class="kcell">2</div><div class="kcell">1</div>
+          </div>
+        </div>
+      </div>
+      <ul><li>1st derivative, directional</li><li>Built-in smoothing weight</li><li>Used inside the Canny pipeline itself</li></ul>
+    </div>
+
+    <div class="tcard">
+      <div class="tnum">OPERATOR / 02</div>
+      <h4>Prewitt</h4>
+      <div class="tformula">|G| = √(Gx² + Gy²)</div>
+      <p>The same idea as Sobel — a directional difference kernel in x and y — but with uniform weighting instead of the 1-2-1 emphasis. Simpler to reason about and to compute, at the cost of being a bit more sensitive to noise.</p>
+      <div class="kmat-pair">
+        <div class="kmat-block"><div class="kmat-title">Gx</div>
+          <div class="kmat" style="grid-template-columns:repeat(3,1fr);">
+            <div class="kcell">-1</div><div class="kcell">0</div><div class="kcell">1</div>
+            <div class="kcell">-1</div><div class="kcell">0</div><div class="kcell">1</div>
+            <div class="kcell">-1</div><div class="kcell">0</div><div class="kcell">1</div>
+          </div>
+        </div>
+        <div class="kmat-block"><div class="kmat-title">Gy</div>
+          <div class="kmat" style="grid-template-columns:repeat(3,1fr);">
+            <div class="kcell">-1</div><div class="kcell">-1</div><div class="kcell">-1</div>
+            <div class="kcell">0</div><div class="kcell">0</div><div class="kcell">0</div>
+            <div class="kcell">1</div><div class="kcell">1</div><div class="kcell">1</div>
+          </div>
+        </div>
+      </div>
+      <ul><li>1st derivative, directional</li><li>Uniform neighbor weighting</li><li>Slightly noisier response than Sobel</li></ul>
+    </div>
+
+    <div class="tcard">
+      <div class="tnum">OPERATOR / 03</div>
+      <h4>Laplacian</h4>
+      <div class="tformula">∇²f = ∂²f/∂x² + ∂²f/∂y²</div>
+      <p>A second-derivative, direction-agnostic operator: it responds wherever the rate of intensity change itself is changing, so it fires on edges from every orientation at once with a single kernel. It's also more sensitive to noise, which is why it's normally applied after smoothing (as in Laplacian-of-Gaussian).</p>
+      <div class="kmat-pair">
+        <div class="kmat-block"><div class="kmat-title">4-neighbor</div>
+          <div class="kmat" style="grid-template-columns:repeat(3,1fr);">
+            <div class="kcell">0</div><div class="kcell">1</div><div class="kcell">0</div>
+            <div class="kcell">1</div><div class="kcell">-4</div><div class="kcell">1</div>
+            <div class="kcell">0</div><div class="kcell">1</div><div class="kcell">0</div>
+          </div>
+        </div>
+        <div class="kmat-block"><div class="kmat-title">8-neighbor</div>
+          <div class="kmat" style="grid-template-columns:repeat(3,1fr);">
+            <div class="kcell">1</div><div class="kcell">1</div><div class="kcell">1</div>
+            <div class="kcell">1</div><div class="kcell">-8</div><div class="kcell">1</div>
+            <div class="kcell">1</div><div class="kcell">1</div><div class="kcell">1</div>
+          </div>
+        </div>
+      </div>
+      <ul><li>2nd derivative, omnidirectional</li><li>Zero-crossings mark edges</li><li>High noise sensitivity — pre-smooth first</li></ul>
+    </div>
+  </div>
+
+  <div class="panel" style="margin-top:32px;">
+    <h3>Quick comparison</h3>
+    <table class="cmp">
+      <tr><th>Operator</th><th>Derivative order</th><th>Directional</th><th>Noise sensitivity</th></tr>
+      <tr><td>Sobel</td><td>1st</td><td>Yes (x / y)</td><td>Medium</td></tr>
+      <tr><td>Prewitt</td><td>1st</td><td>Yes (x / y)</td><td>Medium–High</td></tr>
+      <tr><td>Laplacian</td><td>2nd</td><td>No — isotropic</td><td>High</td></tr>
+    </table>
+  </div>
+</section>
+
+<!-- ================= CANNY ================= -->
+<section id="canny">
+  <div class="section-head">
+    <div class="eyebrow">04 · Reference</div>
+    <h2>Canny edge detection</h2>
+    <p>Canny doesn't introduce a new gradient — it wraps Gaussian smoothing and Sobel gradients in a five-step pipeline designed to produce thin, connected, well-localized edges.</p>
+  </div>
+
+  <div class="pipeline">
+    <div class="pstep">
+      <div class="pnum">01</div>
+      <div>
+        <h4>Gaussian smoothing</h4>
+        <p>The image is blurred first, because raw gradients amplify pixel-level noise. A larger σ removes more noise but also more fine detail — it's the same trade-off as the Gaussian filter above.</p>
+        <span class="tag">reuses: Gaussian filter</span>
+      </div>
+    </div>
+    <div class="pstep">
+      <div class="pnum">02</div>
+      <div>
+        <h4>Gradient computation</h4>
+        <p>Sobel kernels compute Gx and Gy at every pixel, giving both a gradient magnitude (edge strength) and a gradient direction (which way the intensity is changing fastest).</p>
+        <span class="tag">reuses: Sobel operator</span>
+      </div>
+    </div>
+    <div class="pstep">
+      <div class="pnum">03</div>
+      <div>
+        <h4>Non-maximum suppression</h4>
+        <p>Edges from step 2 are typically several pixels wide. At each point, the algorithm checks the two neighbors along the gradient direction and keeps the pixel only if it's a local maximum — thinning wide ridges down to single-pixel-wide lines.</p>
+      </div>
+    </div>
+    <div class="pstep">
+      <div class="pnum">04</div>
+      <div>
+        <h4>Double thresholding</h4>
+        <p>Every remaining pixel is classified against two thresholds: above the high threshold it's a <b style="color:var(--edge)">strong edge</b>, below the low threshold it's discarded, and in between it's marked as a <b style="color:var(--warn)">weak edge</b> — a candidate that needs more context.</p>
+      </div>
+    </div>
+    <div class="pstep">
+      <div class="pnum">05</div>
+      <div>
+        <h4>Edge tracking by hysteresis</h4>
+        <p>Weak edges survive only if they're connected — directly or through a chain of other weak edges — to a strong edge. Isolated weak responses, usually noise, are dropped. What's left is the final binary edge map.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  Built with plain canvas + JavaScript <span class="dot"></span> All processing happens in your browser <span class="dot"></span> No images are uploaded anywhere
+</footer>
+
+<script src="script.js"></script>
+</body>
+</html>
